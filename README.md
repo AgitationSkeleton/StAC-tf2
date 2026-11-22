@@ -1,7 +1,8 @@
 # StAC multigame fork
 
 This is a fork of [Steph's AntiCheat (StAC)](https://github.com/sapphonie/StAC-tf2) by sapphonie.
-It builds StAC for **every TF2-family game that runs SourceMod**, from one source tree:
+It builds StAC for **every TF2-family game that runs SourceMod**, plus Fortress Forever,
+Half-Life 2: Deathmatch and Counter-Strike: Source, from one source tree:
 
 | Game | Game folder | Engine | SourceMod tested | Release zip |
 |---|---|---|---|---|
@@ -10,6 +11,9 @@ It builds StAC for **every TF2-family game that runs SourceMod**, from one sourc
 | TF2: Gold Rush | `tf_goldrush` | TF2 branch, x64 | 1.13, x64 | `stac-tf2goldrush.zip` |
 | Open Fortress | `open_fortress` | Source SDK 2013 | 1.11, x86 | `stac-open_fortress.zip` |
 | Pre-Fortress 2 | `pf2` | Source SDK 2013 | 1.12, x86 | `stac-pf2.zip` |
+| Fortress Forever | `fortressforever` | Source SDK 2013 | 1.11, x86 | `stac-fortressforever.zip` |
+| Half-Life 2: Deathmatch | `hl2mp` | HL2DM (TF2's Steam branch) | 1.13, x86 | `stac-hl2mp.zip` |
+| Counter-Strike: Source | `cstrike` | CS:S (TF2's Steam branch) | 1.13, x86 | `stac-cstrike.zip` |
 
 Download the zip for your game from [Releases](../../releases). Every StAC check that the game can
 support still runs. The full list of changes, and what was and wasn't verified, is in
@@ -19,7 +23,11 @@ support still runs. The full list of changes, and what was and wasn't verified, 
 
 - **The bunnyhop check is off by default** (`stac_max_bhop_detections -1`) in every build.
 - **Each game gets its own build.** Pick it at compile time (`STAC_GAME_TF2C=1`, `STAC_GAME_GOLDRUSH=1`,
-  `STAC_GAME_OF=1`, `STAC_GAME_PF2=1`; plain TF2 is the default). A build refuses to run in the wrong game.
+  `STAC_GAME_OF=1`, `STAC_GAME_PF2=1`, `STAC_GAME_FF=1`, `STAC_GAME_HL2MP=1`, `STAC_GAME_CSS=1`; plain
+  TF2 is the default). A build refuses to run in the wrong game.
+- **Fortress Forever, HL2DM and CS:S builds have no TF2 code.** TF2's conds, taunts, teleporters, damage
+  types, MvM check and team enum are compiled out. Every game-neutral check still runs. Cvars a game's
+  client doesn't have (such as `fov_desired`) aren't queried.
 - **Extensions are per game.** Outside TF2, SteamWorks, Connect and SourceTV Manager are optional:
   each zip ships only the ones that load on that game, and StAC logs which features are off for the
   rest. TF2 still requires them, as upstream does.
@@ -28,7 +36,8 @@ support still runs. The full list of changes, and what was and wasn't verified, 
   StAC keep their copy.
 - **Memory hooks only where they're safe.** On TF2 they behave exactly as upstream. On TF2 Classified
   they are compiled out (DHooks detours and raw-address SDKCalls crash its x64 server). Gold Rush,
-  Open Fortress and PF2 try them, then run without them, logging why, because no gamedata covers those engines yet.
+  Open Fortress, PF2, Fortress Forever, HL2DM and CS:S try them, then run without them, logging why,
+  because no gamedata covers those engines yet.
 - **Missing cvars, events and props are skipped** instead of erroring. Games without entity-output
   hooking get a `trigger_teleport` fallback for the backtrack patch.
 - **The Updater is compiled out of release builds**, because upstream's update URL serves the TF2
@@ -41,7 +50,15 @@ support still runs. The full list of changes, and what was and wasn't verified, 
    `addons/sourcemod/...` merges with yours.
 3. Start the server. On first run StAC writes `cfg/sourcemod/stac.cfg`.
 
-Outside TF2, also install the game's TF2-tools replacement plugin. StAC needs it for the
+**Fortress Forever:** the zip also adds two SourceMod gamedata overrides
+(`gamedata/sdkhooks.games/custom/stac-ff2013.txt`, `gamedata/sdktools.games/custom/stac-ff2013.txt`).
+SourceMod's own FF gamedata is for FF 2.4. On FF 2013, an `OnTakeDamage` hook crashes the server, and
+`OnPlayerRunCmd` never fires. The overrides fix that **for every plugin on the server**, so other plugins'
+`OnPlayerRunCmd` and `OnTakeDamage` hooks start working too. Without them, StAC still runs, but its
+usercmd checks don't. See [CHANGES-multigame.md](CHANGES-multigame.md).
+
+In the other TF2-based games, also install the game's TF2-tools replacement plugin (Fortress Forever,
+HL2DM and CS:S don't need one). StAC needs it for the
 `TF2_OnConditionAdded`/`Removed` forwards that tell it when a player is taunting:
 [SM-TF2Classified-Tools](https://github.com/AgitationSkeleton/SM-TF2Classified-Tools),
 [SM-TF2GoldRush-Tools](https://github.com/AgitationSkeleton/SM-TF2GoldRush-Tools),
@@ -57,8 +74,8 @@ the file. To turn the bunnyhop check off on a server that already has one, set
 SPCOMP_1_11=... SPCOMP_1_12=... SPCOMP_1_13=... python tools/build_release.py [game ...]
 ```
 
-This writes one zip per game to `release/`. Open Fortress is compiled with SourceMod 1.11's
-compiler, because its servers run 1.11 and code compiled with 1.12 is "too new" for it.
+This writes one zip per game to `release/`. Open Fortress and Fortress Forever are compiled with
+SourceMod 1.11's compiler, because their servers run 1.11 and code compiled with 1.12 is "too new" for it.
 
 ## Status
 
@@ -66,6 +83,8 @@ Every build has been loaded on a LAN test copy of its game's server, with bots o
 - it loads cleanly and its cvars register;
 - the admin commands run;
 - map changes run cleanly.
+
+The Fortress Forever gamedata overrides have only been run on a Windows server.
 
 Detections on real players, and Connect's early-connect hook outside TF2, have not been tested with
 a human client yet. Reports are welcome in this fork's issues. Please don't report fork-specific
