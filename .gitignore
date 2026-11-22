@@ -3,3 +3,6 @@
 
 ./stac.smx
 *sublime*
+
+# build_release.py output
+/release/
