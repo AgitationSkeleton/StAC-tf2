@@ -13,7 +13,8 @@ environment variables (one per SourceMod line, or SPCOMP for all of them):
     SPCOMP=...                      fallback for any line not set above
 
 Each zip unpacks straight into the game folder (tf/, tf2classified/, tf_goldrush/,
-open_fortress/, pf2/) and carries only the extensions and gamedata that game can use.
+open_fortress/, pf2/, fortressforever/, hl2mp/, cstrike/) and carries only the extensions and gamedata
+that game can use.
 See CHANGES-multigame.md for what is in each zip and why.
 """
 import argparse
@@ -81,6 +82,36 @@ GAMES = {
         "define": "STAC_GAME_PF2",
         "sm": "1_12",
         "folder": "pf2",
+        "exts": ["SteamWorks.ext.dll", "SteamWorks.ext.so"],
+        "gamedata": [],
+    },
+    "fortressforever": {
+        "define": "STAC_GAME_FF",
+        "sm": "1_11",
+        "folder": "fortressforever",
+        # SDK 2013 engine, like Open Fortress: only SteamWorks. FF servers run SourceMod 1.11.
+        # SourceMod's own FF gamedata is for FF 2.4: its OnTakeDamage offset is FF 2013's TraceAttack
+        # (hooking it crashes the server) and its PlayerRunCmd offset is wrong, so OnPlayerRunCmd never
+        # fires. These "custom" overrides fix both offsets for every plugin on the server, not only StAC.
+        "exts": ["SteamWorks.ext.dll", "SteamWorks.ext.so"],
+        "gamedata": ["sdkhooks.games/custom/stac-ff2013.txt", "sdktools.games/custom/stac-ff2013.txt"],
+    },
+    "hl2mp": {
+        "define": "STAC_GAME_HL2MP",
+        "sm": "1_12",
+        "folder": "hl2mp",
+        # HL2DM and CS:S run on the same Steam branch as TF2, but the TF2 builds of Connect and SourceTV
+        # Manager don't fit: loaded under the game's name, Connect can't find
+        # CBaseServer::CheckMasterServerRequestRestart, SourceTV Manager has no ExecuteStringCommand
+        # offset, and Conplex can't set up its ProcessAccept detour. Only SteamWorks is shipped.
+        # No stac.txt: StAC's gamedata only covers TF2, so the memory hacks stay off.
+        "exts": ["SteamWorks.ext.dll", "SteamWorks.ext.so"],
+        "gamedata": [],
+    },
+    "cstrike": {
+        "define": "STAC_GAME_CSS",
+        "sm": "1_12",
+        "folder": "cstrike",
         "exts": ["SteamWorks.ext.dll", "SteamWorks.ext.so"],
         "gamedata": [],
     },
