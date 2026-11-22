@@ -54,7 +54,15 @@
 #include <sourcetvmanager>
 // Conplex for rcon hardening: https://forums.alliedmods.net/showthread.php?t=270962
 // Get latest version from here: https://builds.limetech.io/?p=webcon
+// Optional in every build of this fork: StAC calls none of its natives (the extension hardens rcon
+// by itself once loaded), and its source publishes no license, so the release zips don't bundle it.
+#if !defined STAC_SOFT_EXTENSIONS
+    #undef REQUIRE_EXTENSIONS
+#endif
 #include <conplex>
+#if !defined STAC_SOFT_EXTENSIONS
+    #define REQUIRE_EXTENSIONS
+#endif
 #undef AUTOLOAD_EXTENSIONS
 #if defined STAC_SOFT_EXTENSIONS
     #define REQUIRE_EXTENSIONS
@@ -378,6 +386,13 @@ void EngineSanityChecks()
         WarnIfExtMissing("SteamWorks.ext",      "public ip lookup for notifications (falls back to the hostip/ip cvars)");
         WarnIfExtMissing("connect.ext",         "steamid spoof / connect spam protection (OnClientPreConnectEx)");
         WarnIfExtMissing("sourcetvmanager.ext", "demo name + tick in ban reasons and notifications");
+        WarnIfExtMissing("conplex.ext",         "rcon hardening");
+    }
+#else
+    static bool warnedConplex;
+    if (!warnedConplex)
+    {
+        warnedConplex = true;
         WarnIfExtMissing("conplex.ext",         "rcon hardening");
     }
 #endif

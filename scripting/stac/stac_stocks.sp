@@ -753,7 +753,6 @@ void HookEventSafe(const char[] name, EventHook callback, EventHookMode mode = E
     }
 }
 
-#if defined STAC_SOFT_EXTENSIONS
 void WarnIfExtMissing(const char[] file, const char[] feature)
 {
     if (GetExtensionFileStatus(file) != 1)
@@ -761,7 +760,6 @@ void WarnIfExtMissing(const char[] file, const char[] feature)
         StacLog("Optional extension %s isn't running - disabled: %s", file, feature);
     }
 }
-#endif
 
 // Set a cvar only if this game has it
 void SetConVarIntIfExists(const char[] name, int value)

@@ -22,6 +22,11 @@ switches. `tools/build_release.py` builds one zip per game.
   `sv_client_cmdrate_difference`, `sv_voicecodec` and the rate cvars are only touched if they exist.
   `teamplay_round_start`, `achievement_earned` and `player_teleported` are hooked only if the game
   has them. `m_bPlayingMannVsMachine` is read only when the gamerules proxy has it.
+- **Conplex is optional in every build, and the release zips don't include it.** StAC calls none of
+  Conplex's natives; the extension hardens rcon by itself once it is loaded. Its source
+  (asherkin/webcon) publishes no license, so this fork doesn't redistribute its binary, gamedata or
+  include in release zips. TF2 servers that already run upstream StAC keep their Conplex. Without it,
+  StAC logs "Optional extension conplex.ext isn't running - disabled: rcon hardening" once.
 - **SourceTV Manager and SteamWorks calls are guarded.** If the extension isn't loaded, the demo
   name in ban reasons is skipped, and the server IP comes from the `hostip` cvar.
 
@@ -29,7 +34,7 @@ switches. `tools/build_release.py` builds one zip per game.
 
 | Game (folder) | Engine / tested SM | Extensions | Memory hacks | Other changes |
 |---|---|---|---|---|
-| TF2 (`tf`) | TF2, SM 1.12 x86 | All required, same as upstream: SteamWorks, Connect, SourceTV Manager, Conplex | On; any failure is fatal, as upstream | none |
+| TF2 (`tf`) | TF2, SM 1.12 x86 | SteamWorks, Connect and SourceTV Manager required, as upstream; Conplex optional (not bundled) | On; any failure is fatal, as upstream | none |
 | TF2 Classified (`tf2classified`) | TF2 branch, x64, SM 1.13 | Optional. Ships Connect x64 only | Compiled out (`STAC_NO_MEMHACKS`): DHooks detours and raw-address SDKCalls crash TF2C's x64 server | TF2 Tools ext not required; TF2's Halloween cond ids are ignored |
 | TF2: Gold Rush (`tf_goldrush`) | TF2 branch, x64, SM 1.13 | Optional. Ships Connect x64 + upstream's current `connect.games.txt` | Tried at load; turned off with a log line because there is no Gold Rush gamedata | SDKTools has no entity-output hooking here, so the backtrack patch watches `trigger_teleport` with SDKHooks (`STAC_NO_ENTITY_OUTPUTS`); TF2 Tools ext not required |
 | Open Fortress (`open_fortress`) | SDK 2013, SM 1.11 x86 | Optional. Ships SteamWorks (engine independent) | Tried at load; off because there is no SDK 2013 gamedata | Same entity-output fallback as Gold Rush; built with the SM 1.11 compiler, because 1.12 output fails on SM 1.11 with "code is too new" |
@@ -53,6 +58,8 @@ Verified on LAN test copies of each game's server, with bots and no human player
 - A map change (OnMapEnd/OnMapStart/config execution) runs clean.
 - Each optional extension is reported as loaded or missing.
 - TF2 only: all 3 detours and 3 SDKCalls set up.
+- Making Conplex optional (after the test runs above) is a compile-time change only: every build
+  compiles, but that last change was not load-tested again.
 
 Not verified (each needs a real human client, which the test setup didn't have):
 - Detections that fire on a real player's usercmds.
@@ -65,9 +72,9 @@ Not verified (each needs a real human client, which the test setup didn't have):
 | File | Zips | Source | License |
 |---|---|---|---|
 | `SteamWorks.ext.dll` / `.so` (1.2.3) | tf2, open_fortress, pf2 | github.com/KyleSanderson/SteamWorks (same binary upstream StAC ships) | GPL-3.0 |
-| `connect.ext.2.tf2.dll` / `.so` (x86), `x64/connect.ext.2.tf2.dll` / `.so` (1.4.0) | tf2 (x86+x64), tf2classified (x64), tf2goldrush (x64) | asherkin/connect (limetech builds), as shipped by upstream StAC | check before publishing (asherkin's SourceMod extensions are generally GPL-3.0) |
+| `connect.ext.2.tf2.dll` / `.so` (x86), `x64/connect.ext.2.tf2.dll` / `.so` (1.4.0) | tf2 (x86+x64), tf2classified (x64), tf2goldrush (x64) | asherkin/connect (limetech builds), as shipped by upstream StAC | GPL-3.0 (stated in the extension's source headers) |
 | `sourcetvmanager.ext.2.tf2.dll` / `.so` | tf2 | github.com/peace-maker/sourcetvmanager, as shipped by upstream StAC | GPL-3.0 |
-| `conplex.ext.dll` / `.so` | tf2 | asherkin/webcon (Conplex), as shipped by upstream StAC | check before publishing |
+| `conplex.ext.dll` / `.so` | none (not bundled) | asherkin/webcon (Conplex); upstream StAC ships it | no license published, so this fork's releases leave it out |
 
 Every zip also includes the plugin source (`addons/sourcemod/scripting/`) and `data/stac-build-info.txt`,
 which lists the sha256 of every shipped file.

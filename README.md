@@ -1,3 +1,90 @@
+# StAC multigame fork
+
+This is a fork of [Steph's AntiCheat (StAC)](https://github.com/sapphonie/StAC-tf2) by sapphonie.
+It builds StAC for **every TF2-family game that runs SourceMod**, from one source tree:
+
+| Game | Game folder | Engine | SourceMod tested | Release zip |
+|---|---|---|---|---|
+| Team Fortress 2 | `tf` | TF2 | 1.12, x86 | `stac-tf2.zip` |
+| TF2 Classified | `tf2classified` | TF2 branch, x64 | 1.13, x64 | `stac-tf2classified.zip` |
+| TF2: Gold Rush | `tf_goldrush` | TF2 branch, x64 | 1.13, x64 | `stac-tf2goldrush.zip` |
+| Open Fortress | `open_fortress` | Source SDK 2013 | 1.11, x86 | `stac-open_fortress.zip` |
+| Pre-Fortress 2 | `pf2` | Source SDK 2013 | 1.12, x86 | `stac-pf2.zip` |
+
+Download the zip for your game from [Releases](../../releases). Every StAC check that the game can
+support still runs. The full list of changes, and what was and wasn't verified, is in
+[CHANGES-multigame.md](CHANGES-multigame.md).
+
+## What's different from upstream
+
+- **The bunnyhop check is off by default** (`stac_max_bhop_detections -1`) in every build.
+- **Each game gets its own build.** Pick it at compile time (`STAC_GAME_TF2C=1`, `STAC_GAME_GOLDRUSH=1`,
+  `STAC_GAME_OF=1`, `STAC_GAME_PF2=1`; plain TF2 is the default). A build refuses to run in the wrong game.
+- **Extensions are per game.** Outside TF2, SteamWorks, Connect and SourceTV Manager are optional:
+  each zip ships only the ones that load on that game, and StAC logs which features are off for the
+  rest. TF2 still requires them, as upstream does.
+- **Conplex is optional everywhere and not bundled.** StAC calls none of its natives, and its source
+  publishes no license, so the releases don't redistribute it. TF2 servers already running upstream
+  StAC keep their copy.
+- **Memory hooks only where they're safe.** On TF2 they behave exactly as upstream. On TF2 Classified
+  they are compiled out (DHooks detours and raw-address SDKCalls crash its x64 server). Gold Rush,
+  Open Fortress and PF2 try them, then run without them, logging why, because no gamedata covers those engines yet.
+- **Missing cvars, events and props are skipped** instead of erroring. Games without entity-output
+  hooking get a `trigger_teleport` fallback for the backtrack patch.
+- **The Updater is compiled out of release builds**, because upstream's update URL serves the TF2
+  build and would replace a build for another game.
+
+## Install
+
+1. Stop the server.
+2. Unzip your game's zip into the game folder, for example `tf2classified/`, so that
+   `addons/sourcemod/...` merges with yours.
+3. Start the server. On first run StAC writes `cfg/sourcemod/stac.cfg`.
+
+Outside TF2, also install the game's TF2-tools replacement plugin. StAC needs it for the
+`TF2_OnConditionAdded`/`Removed` forwards that tell it when a player is taunting:
+[SM-TF2Classified-Tools](https://github.com/AgitationSkeleton/SM-TF2Classified-Tools),
+[SM-TF2GoldRush-Tools](https://github.com/AgitationSkeleton/SM-TF2GoldRush-Tools),
+SM-Open-Fortress-Tools or PF2-Tools. Without it, StAC still loads but can't tell when a player is taunting.
+
+An existing `stac.cfg` keeps its old values: SourceMod never overwrites a value that is already in
+the file. To turn the bunnyhop check off on a server that already has one, set
+`stac_max_bhop_detections "-1"` there.
+
+## Building
+
+```
+SPCOMP_1_11=... SPCOMP_1_12=... SPCOMP_1_13=... python tools/build_release.py [game ...]
+```
+
+This writes one zip per game to `release/`. Open Fortress is compiled with SourceMod 1.11's
+compiler, because its servers run 1.11 and code compiled with 1.12 is "too new" for it.
+
+## Status
+
+Every build has been loaded on a LAN test copy of its game's server, with bots only:
+- it loads cleanly and its cvars register;
+- the admin commands run;
+- map changes run cleanly.
+
+Detections on real players, and Connect's early-connect hook outside TF2, have not been tested with
+a human client yet. Reports are welcome in this fork's issues. Please don't report fork-specific
+problems upstream.
+
+## Credits
+
+StAC is by [sapphonie](https://github.com/sapphonie) and its contributors (GPL-3.0). All
+anticheat logic is theirs; this fork only adds the per-game build layer. Bundled extensions:
+[SteamWorks](https://github.com/KyleSanderson/SteamWorks) (GPL-3.0),
+[Connect](https://github.com/asherkin/connect) (GPL-3.0),
+[SourceTV Manager](https://github.com/peace-maker/sourcetvmanager) (GPL-3.0).
+
+---
+
+*Upstream's README follows, unchanged.*
+
+---
+
 <h1>  Steph's AntiCheat </h1>
 
 

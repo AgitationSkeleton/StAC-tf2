@@ -33,7 +33,9 @@ TF2_EXTS = [
     "connect.ext.2.tf2.dll", "connect.ext.2.tf2.so",
     "x64/connect.ext.2.tf2.dll", "x64/connect.ext.2.tf2.so",
     "sourcetvmanager.ext.2.tf2.dll", "sourcetvmanager.ext.2.tf2.so",
-    "conplex.ext.dll", "conplex.ext.so",
+    # Conplex (conplex.ext + conplex.games.txt) is not bundled: asherkin/webcon publishes no license, so
+    # its binaries can't be redistributed in this fork's releases. It is optional in every build; TF2
+    # servers that want rcon hardening keep the copy upstream StAC installs.
     # webcon.ext (also in extensions/) is a web console built on Conplex; StAC doesn't use it, so it isn't shipped
 ]
 
@@ -44,7 +46,7 @@ GAMES = {
         "sm": "1_12",
         "folder": "tf",
         "exts": TF2_EXTS,
-        "gamedata": ["stac.txt", "connect.games.txt", "conplex.games.txt", "sourcetvmanager.games.txt"],
+        "gamedata": ["stac.txt", "connect.games.txt", "sourcetvmanager.games.txt"],
     },
     "tf2classified": {
         "define": "STAC_GAME_TF2C",
@@ -139,6 +141,8 @@ def build(game, cfg, outdir):
             # GPL: ship the source the plugin was built from
             for base, _dirs, files in os.walk(os.path.join(ROOT, "scripting")):
                 for f in sorted(files):
+                    if f.lower() == "conplex.inc":
+                        continue   # Conplex publishes no license (see TF2_EXTS); the fork repo has it
                     full = os.path.join(base, f)
                     rel = os.path.relpath(full, ROOT).replace(os.sep, "/")
                     zf.write(full, sm + rel)
