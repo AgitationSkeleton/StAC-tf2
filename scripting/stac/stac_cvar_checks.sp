@@ -22,7 +22,9 @@ char miscVars[][] =
     // this is a useless check but we check it anyway
     "fov_desired",          // !        | client archive userinfo
     "cl_interpolate",       // == 1     | devonly userinfo notconnected
+#if !defined STAC_NO_THIRDPERSON_CHECK
     "cl_thirdperson",       // == 0     | devonly client archive userinfo notconnected
+#endif
 
     // cheat only vars - everything after here WILL NOT get checked if (sv_cheats == 1)
     "r_drawothermodels",    // == 1     | client cheat
@@ -72,7 +74,9 @@ char cheatVars[][] =
     // fware
     "crash",
     // cathook uses this to "spoof" windows
+#if !defined STAC_NO_SPEAKER_CONFIG_CHECK
     "windows_speaker_config",
+#endif
     // Amalgam uses this in the Src (https://github.com/rei-2/Amalgam/blob/master/Amalgam/src/Features/Commands/Commands.cpp)
     "getcvar",
 };
@@ -244,7 +248,7 @@ public void ConVarCheck(QueryCookie cookie, int cl, ConVarQueryResult result, co
     {
         int fovDesired = StringToInt(cvarValue);
         // check just in case
-        if (fovDesired < 20 || fovDesired > 90)
+        if (fovDesired < 20 || fovDesired > STAC_FOV_MAX)
         {
             oobVarsNotify(userid, cvarName, cvarValue);
             if (stac_ban_for_misccheats.BoolValue)
@@ -268,6 +272,7 @@ public void ConVarCheck(QueryCookie cookie, int cl, ConVarQueryResult result, co
         }
     }
 
+#if !defined STAC_NO_THIRDPERSON_CHECK
     // cl_thirdperson (hidden cvar! should NEVER not be 0)
     // used for enabling thirdperson
     else if (StrEqual(cvarName, "cl_thirdperson"))
@@ -281,6 +286,7 @@ public void ConVarCheck(QueryCookie cookie, int cl, ConVarQueryResult result, co
             }
         }
     }
+#endif
 
 
 

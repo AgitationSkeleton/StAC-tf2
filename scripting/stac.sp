@@ -171,7 +171,9 @@ public void OnPluginStart()
     // hook real player disconnects
     HookEvent("player_disconnect", ePlayerDisconnect);
     // grab player cheevs
+#if !defined STAC_NO_ACHIEVEMENT_CHECK
     HookEventSafe("achievement_earned", ePlayerAchievement, EventHookMode_Post);
+#endif
 
     // hook sv_cheats so we can instantly unload if cheats get turned on
     HookConVarChange(FindConVar("sv_cheats"), GenericCvarChanged);

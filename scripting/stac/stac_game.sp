@@ -89,3 +89,22 @@
     #define STAC_STRICT_MEMHACKS
 
 #endif
+
+/********** CHECKS THAT ONLY HOLD ON TF2 **********/
+// False positives found live 2026-11-21 (two legit TF2 Classified players banned). These checks
+// encode facts about TF2's client that other games don't share, so only the TF2 build runs them:
+//   - bogus achievement: TF2's achievement ids start at 127; TF2C numbers its own from 0, and
+//     HL2DM/CS:S/etc. have their own lists, so every real achievement there looked "bogus".
+//   - cl_thirdperson must be 0: devonly in TF2, but a normal archived option in TF2C and OF.
+//   - windows_speaker_config as a cheat var: the SDK 2013 base engine (OF/PF2/FF) registers it.
+//   - fov_desired: TF2 clamps to 90; TF2C, OF and PF2 allow up to 130 (MAX_FOV 130).
+#if !defined STAC_GAME_TF2
+    #define STAC_NO_ACHIEVEMENT_CHECK
+    #define STAC_NO_THIRDPERSON_CHECK
+    #if !defined STAC_NO_SPEAKER_CONFIG_CHECK
+        #define STAC_NO_SPEAKER_CONFIG_CHECK
+    #endif
+    #define STAC_FOV_MAX            130
+#else
+    #define STAC_FOV_MAX            90
+#endif
