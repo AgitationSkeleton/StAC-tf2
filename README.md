@@ -78,6 +78,8 @@ anticheat logic is theirs; this fork only adds the per-game build layer. Bundled
 [SteamWorks](https://github.com/KyleSanderson/SteamWorks) (GPL-3.0),
 [Connect](https://github.com/asherkin/connect) (GPL-3.0),
 [SourceTV Manager](https://github.com/peace-maker/sourcetvmanager) (GPL-3.0).
+They are unmodified, byte-identical to the files upstream StAC ships. Each zip lists the ones it
+bundles, with links and licenses, in `addons/sourcemod/data/stac-third-party.txt`.
 
 ---
 

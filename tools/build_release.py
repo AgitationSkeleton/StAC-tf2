@@ -90,6 +90,32 @@ GAMES = {
 COMMON_DEFINES = ["STAC_NO_UPDATER=1"]
 
 
+# Credit and source for every bundled third-party file (all unmodified: byte-identical to the
+# files upstream StAC ships, see CHANGES-multigame.md for the sha256 table)
+THIRD_PARTY = [
+    ("SteamWorks", "SteamWorks.ext", "https://github.com/KyleSanderson/SteamWorks", "GPL-3.0", "KyleSanderson"),
+    ("Connect", "connect.ext", "https://github.com/asherkin/connect", "GPL-3.0", "Asher Baker (asherkin)"),
+    ("SourceTV Manager", "sourcetvmanager.ext", "https://github.com/peace-maker/sourcetvmanager", "GPL-3.0", "peace-maker"),
+]
+
+
+def third_party_notice(exts):
+    lines = ["StAC (Steph's AntiCheat) by sapphonie and contributors - https://github.com/sapphonie/StAC-tf2 (GPL-3.0)",
+             "This build is from the multigame fork; its source is in addons/sourcemod/scripting/ and in the fork's repository.",
+             "", "Bundled third-party extensions (unmodified, as shipped by upstream StAC):"]
+    shipped = False
+    for name, prefix, url, lic, author in THIRD_PARTY:
+        files = [e for e in exts if e.split("/")[-1].startswith(prefix)]
+        if files:
+            shipped = True
+            lines.append("  %s by %s - %s (%s): %s" % (name, author, url, lic, ", ".join(files)))
+    if not shipped:
+        lines.append("  none")
+    lines += ["", "Not bundled: Conplex (https://github.com/asherkin/webcon) publishes no license; StAC runs without it.",
+              "Each extension's source and license are at the links above."]
+    return chr(10).join(lines) + chr(10)
+
+
 def spcomp_for(line):
     exe = os.environ.get("SPCOMP_" + line) or os.environ.get("SPCOMP")
     if not exe or not os.path.isfile(exe):
@@ -155,6 +181,7 @@ def build(game, cfg, outdir):
             ) % (game, cfg["folder"], cfg["define"], " ".join(COMMON_DEFINES), cfg["sm"].replace("_", "."),
                  cfg["folder"], "\n".join(manifest))
             zf.writestr(sm + "data/stac-build-info.txt", info)
+            zf.writestr(sm + "data/stac-third-party.txt", third_party_notice(cfg["exts"]))
     print("built %s" % zpath)
     for m in manifest:
         print("    " + m)
