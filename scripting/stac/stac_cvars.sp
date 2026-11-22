@@ -420,7 +420,7 @@ public void GenericCvarChanged(ConVar convar, const char[] oldValue, const char[
     //    timescale = GetConVarFloat(convar);
     //}
 
-    if (convar == FindConVar("sv_allow_wait_command"))
+    if (convar == FindConVar("sv_allow_wait_command") && convar != null)
     {
         if (StringToInt(newValue) != 0)
         {
@@ -442,48 +442,50 @@ void RunOptimizeCvars()
         return;
     }
 
+    // not every game has every one of these cvars, so only touch the ones that exist
+
     // attempt to patch doubletap (CS:GO default value!)
-    SetConVarInt(FindConVar("sv_maxusrcmdprocessticks"), 8);
+    SetConVarIntIfExists("sv_maxusrcmdprocessticks", 8);
 
     // force psilent to show up properly
-    SetConVarInt(FindConVar("sv_maxusrcmdprocessticks_holdaim"), 1);
+    SetConVarIntIfExists("sv_maxusrcmdprocessticks_holdaim", 1);
 
     // limit fakelag abuse / backtracking (CS:GO default value!)
     // Note from the future: we DON'T need to do this with our backtrack patch.
     // SetConVarFloat(FindConVar("sv_maxunlag"), 0.2);
 
     // print dc reasons to clients
-    SetConVarBool(FindConVar("net_disconnect_reason"), true);
+    SetConVarIntIfExists("net_disconnect_reason", 1);
 
     // prevent all sorts of exploits involving CNetChan fuzzing etc.
     ConVar net_chan_limit_msec = FindConVar("net_chan_limit_msec");
     // don't override server set settings if they have set it to a value other than 0
-    if (GetConVarInt(net_chan_limit_msec) <= 0)
+    if (net_chan_limit_msec && GetConVarInt(net_chan_limit_msec) <= 0)
     {
         SetConVarInt(net_chan_limit_msec, 128);
     }
 
     if (isDefaultTickrate())
     {
-        if (GetConVarInt(FindConVar("sv_mincmdrate")) < 30)
+        if (GetConVarIntIfExists("sv_mincmdrate", 30) < 30)
         {
-            SetConVarInt(FindConVar("sv_mincmdrate"), 30);
+            SetConVarIntIfExists("sv_mincmdrate", 30);
         }
-        if (GetConVarInt(FindConVar("sv_minupdaterate")) < 30)
+        if (GetConVarIntIfExists("sv_minupdaterate", 30) < 30)
         {
-            SetConVarInt(FindConVar("sv_minupdaterate"), 30);
+            SetConVarIntIfExists("sv_minupdaterate", 30);
         }
         // 65536 = 0.5 mebibits per second
-        if (GetConVarInt(FindConVar("sv_minrate")) < 65536)
+        if (GetConVarIntIfExists("sv_minrate", 65536) < 65536)
         {
-            SetConVarInt(FindConVar("sv_minrate"), 65536);
+            SetConVarIntIfExists("sv_minrate", 65536);
         }
     }
 
     // OVERRIDE this setting
     // There is basically NO situation where you want the client updating FROM the server at a different rate
     // than they are updating the server itself by sending usercmds
-    SetConVarInt(FindConVar("sv_client_cmdrate_difference"), 0);
+    SetConVarIntIfExists("sv_client_cmdrate_difference", 0);
 
     // fix backtracking
     ConVar jay_backtrack_enable     = FindConVar("jay_backtrack_enable");
@@ -499,5 +501,9 @@ void RunOptimizeCvars()
 
     // there have been several exploits in the past regarding non steam codec
     // this is defensive
-    SetConVarString(FindConVar("sv_voicecodec"), "steam");
+    ConVar sv_voicecodec = FindConVar("sv_voicecodec");
+    if (sv_voicecodec)
+    {
+        SetConVarString(sv_voicecodec, "steam");
+    }
 }

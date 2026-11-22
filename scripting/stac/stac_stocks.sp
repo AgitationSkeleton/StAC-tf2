@@ -440,7 +440,7 @@ void BanUser(int userid, char reason[128], char pubreason[256])
 
     int banDuration = stac_ban_duration.IntValue;
 
-    if (stac_include_demoname_in_banreason.BoolValue && SourceTV_IsRecording() && GetDemoName())
+    if (stac_include_demoname_in_banreason.BoolValue && IsSourceTVManagerAvailable() && SourceTV_IsRecording() && GetDemoName())
     {
         char demoname_plus[256];
         strcopy(demoname_plus, sizeof(demoname_plus), demoname);
@@ -517,8 +517,20 @@ void BanUser(int userid, char reason[128], char pubreason[256])
     StacLog("%s", pubreason);
 }
 
+// SourceTV Manager is optional in STAC_SOFT_EXTENSIONS builds
+bool IsSourceTVManagerAvailable()
+{
+    return GetFeatureStatus(FeatureType_Native, "SourceTV_GetDemoFileName") == FeatureStatus_Available;
+}
+
 bool GetDemoName()
 {
+    if (!IsSourceTVManagerAvailable())
+    {
+        demotick = -1;
+        demoname = "N/A";
+        return false;
+    }
     demotick = SourceTV_GetRecordingTick();
     if (!SourceTV_GetDemoFileName(demoname, sizeof(demoname)))
     {
@@ -718,6 +730,33 @@ public void OnLibraryAdded(const char[] name)
     {
         Updater_AddPlugin(UPDATE_URL);
     }
+}
+
+/********** PER-GAME HELPERS **********/
+
+// HookEvent throws if the game doesn't have the event; not every game has every TF2 event
+void HookEventSafe(const char[] name, EventHook callback, EventHookMode mode = EventHookMode_Post)
+{
+    if (!HookEventEx(name, callback, mode))
+    {
+        StacLog("Game has no \"%s\" event, not hooking it.", name);
+    }
+}
+
+// Set a cvar only if this game has it
+void SetConVarIntIfExists(const char[] name, int value)
+{
+    ConVar cvar = FindConVar(name);
+    if (cvar)
+    {
+        cvar.IntValue = value;
+    }
+}
+
+int GetConVarIntIfExists(const char[] name, int fallback)
+{
+    ConVar cvar = FindConVar(name);
+    return cvar ? cvar.IntValue : fallback;
 }
 
 /********** DETECTIONS & DISCORD **********/

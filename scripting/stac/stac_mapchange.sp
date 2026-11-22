@@ -146,13 +146,13 @@ Action checkNativesEtc(Handle timer)
         }
     }
 
-    // check wait command
-    if (GetConVarBool(FindConVar("sv_allow_wait_command")))
+    // check wait command (not every game has this cvar)
+    if (GetConVarIntIfExists("sv_allow_wait_command", 0) != 0)
     {
         waitStatus = true;
     }
-    // are we in mann vs machine?
-    if (GameRules_GetProp("m_bPlayingMannVsMachine") == 1)
+    // are we in mann vs machine? (only TF2's gamerules have this prop)
+    if (FindSendPropInfo("CTFGameRulesProxy", "m_bPlayingMannVsMachine") > 0 && GameRules_GetProp("m_bPlayingMannVsMachine") == 1)
     {
         MVM = true;
     }
@@ -205,7 +205,20 @@ Action getIP(Handle timer)
     GetConVarString(FindConVar("hostport"), hostport, sizeof(hostport));
 
     int sw_ip[4];
-    SteamWorks_GetPublicIP(sw_ip);
+    // SteamWorks is optional in STAC_SOFT_EXTENSIONS builds (and has no x64 Windows build)
+    if (GetFeatureStatus(FeatureType_Native, "SteamWorks_GetPublicIP") == FeatureStatus_Available)
+    {
+        SteamWorks_GetPublicIP(sw_ip);
+    }
+    if (sw_ip[0] == 0 && sw_ip[1] == 0 && sw_ip[2] == 0 && sw_ip[3] == 0)
+    {
+        // fall back to the engine's idea of our ip
+        int hostip = GetConVarIntIfExists("hostip", 0);
+        sw_ip[0] = (hostip >>> 24) & 0xFF;
+        sw_ip[1] = (hostip >>> 16) & 0xFF;
+        sw_ip[2] = (hostip >>> 8)  & 0xFF;
+        sw_ip[3] =  hostip         & 0xFF;
+    }
     Format(hostipandport, sizeof(hostipandport), "%i.%i.%i.%i:%s", sw_ip[0], sw_ip[1], sw_ip[2], sw_ip[3], hostport);
 
     if (stac_debug.BoolValue)

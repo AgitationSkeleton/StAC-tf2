@@ -130,7 +130,7 @@ public void OnPluginStart()
     // steamidRegex = CompileRegex("^STEAM_[0-5]:[0-1]:[0-9]+$");
 
     // grab round start events for calculating tps
-    HookEvent("teamplay_round_start", eRoundStart);
+    HookEventSafe("teamplay_round_start", eRoundStart);
     // grab player spawns
     HookEvent("player_spawn", ePlayerSpawned);
     // hook real player disconnects
@@ -139,14 +139,19 @@ public void OnPluginStart()
     // hook real player disconnects
     HookEvent("player_disconnect", ePlayerDisconnect);
     // grab player cheevs
-    HookEvent("achievement_earned", ePlayerAchievement, EventHookMode_Post);
+    HookEventSafe("achievement_earned", ePlayerAchievement, EventHookMode_Post);
 
     // hook sv_cheats so we can instantly unload if cheats get turned on
     HookConVarChange(FindConVar("sv_cheats"), GenericCvarChanged);
     // hook host_timescale so we don't ban ppl if it's not default
     // HookConVarChange(FindConVar("host_timescale"), GenericCvarChanged);
     // hook wait command status for tbot
-    HookConVarChange(FindConVar("sv_allow_wait_command"), GenericCvarChanged);
+    // (not every game has this cvar)
+    ConVar sv_allow_wait_command = FindConVar("sv_allow_wait_command");
+    if (sv_allow_wait_command)
+    {
+        HookConVarChange(sv_allow_wait_command, GenericCvarChanged);
+    }
 
     // Create Stac ConVars for adjusting settings
     initCvars();

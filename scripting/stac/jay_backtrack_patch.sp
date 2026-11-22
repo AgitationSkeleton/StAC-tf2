@@ -41,12 +41,8 @@ int icvar[CVAR_MAX];
 
 void OnPluginStart_jaypatch()
 {
-	char gamefolder[16];
-
-	GetGameFolderName(gamefolder, sizeof(gamefolder));
-
-	if (StrEqual(gamefolder, "tf", false))
-		HookEvent("player_teleported", event_teleported, EventHookMode_Post);
+	// TF2 and most TF2-based games have this event, HookEventEx skips games that don't
+	HookEventEx("player_teleported", event_teleported, EventHookMode_Post);
 
 	HookEvent("player_spawn", event_teleported, EventHookMode_Post);
 
