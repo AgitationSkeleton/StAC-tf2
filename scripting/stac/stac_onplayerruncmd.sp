@@ -263,6 +263,9 @@ stock void PlayerRunCmd
     // neither of these tests need fancy checks, so we do them first
     bhopCheck(cl);
     turnbindCheck(cl);
+#if defined STAC_POLL_TAUNT_COND
+    PollTauntCond(cl);
+#endif
 
     // we have to do all these annoying checks to make sure we get as few false positives as possible.
     if
@@ -271,6 +274,9 @@ stock void PlayerRunCmd
            !IsClientPlaying(cl)
         // ...isn't currently taunting - can cause fake angs!
         || playerTaunting[cl]
+#if defined STAC_POLL_TAUNT_COND
+        || polledTaunting[cl]
+#endif
         // ...didn't recently spawn - can cause invalid psilent detects
         || engineTime[cl][0] - 1.5 < timeSinceSpawn[cl]
         // ...didn't recently taunt - can (obviously) cause fake angs!
@@ -1175,7 +1181,7 @@ void invalidUsercmdCheck(int cl)
     // We should never see buttons >= (26 bits) since IN_ATTACK3 is (1 << 25)
     // I've seen ucmds with 134217728 == (1 << 27), which seem to be related to lmaobox
     // I need to make sure this isn't a fluke, so we're not banning anyone at the moment for it
-    if ( clbuttons[cl][0] >= (1 << 26) )
+    if ( clbuttons[cl][0] >= STAC_FIRST_INVALID_BUTTON )
     {
         invalidUsercmdDetects[cl]++;
         // We CAN NOT spam clients and server log with this, or it WILL lag.
@@ -1195,9 +1201,10 @@ void invalidUsercmdCheck(int cl)
             PrintToImportant
             (
                 "{hotpink}[StAC]{white} Player %N sent an {mediumpurple}invalid usercmd{white}!\n\
-                Buttons {yellow}%i{white} were invalid, >= (1 << 26)!{white}.\nDetections so far: {palegreen}%i",
+                Buttons {yellow}%i{white} were invalid, >= %i!{white}.\nDetections so far: {palegreen}%i",
                 cl,
                 clbuttons[cl][0],
+                STAC_FIRST_INVALID_BUTTON,
                 invalidUsercmdDetects[cl]
             );
 
@@ -1208,7 +1215,7 @@ void invalidUsercmdCheck(int cl)
             StacLogTickcounts(userid);
             StacLogMouse(userid);
 
-            StacNotify(userid, "Invalid usercmd data! client buttons are >= (1 << 26)!", invalidUsercmdDetects[cl]);
+            StacNotify(userid, "Invalid usercmd data! client buttons are above the game's highest button!", invalidUsercmdDetects[cl]);
         }
     }
 

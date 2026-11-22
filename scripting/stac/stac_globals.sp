@@ -116,6 +116,10 @@ char SteamAuthFor           [TFMAXPLAYERS+1][MAX_AUTHID_LENGTH];
 
 bool highGrav               [TFMAXPLAYERS+1];
 bool playerTaunting         [TFMAXPLAYERS+1];
+#if defined STAC_POLL_TAUNT_COND
+bool polledTaunting         [TFMAXPLAYERS+1];   // taunting read from m_nPlayerCond (PollTauntCond)
+int  tauntCondProp = 0;                         // 0 not looked up yet, 1 m_nPlayerCond exists, -1 it doesn't
+#endif
 int playerInBadCond         [TFMAXPLAYERS+1];
 bool userBanQueued          [TFMAXPLAYERS+1];
 float sensFor               [TFMAXPLAYERS+1];

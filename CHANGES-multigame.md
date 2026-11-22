@@ -54,8 +54,15 @@ run as usual: aim, cvar, netprop, userinfo, cmdnum/tickcount, backtrack patch an
 
 Taunt and Halloween-cond tracking uses the `TF2_OnConditionAdded`/`Removed` forwards. Outside TF2,
 StAC only gets these forwards if the game's tools plugin is installed: SM-TF2Classified-Tools,
-SM-TF2GoldRush-Tools, SM-Open-Fortress-Tools or PF2-Tools. Without that plugin, StAC still loads,
-but it doesn't know when players are taunting.
+SM-TF2GoldRush-Tools, SM-Open-Fortress-Tools or PF2-Tools. Since multigame.6 the TF2-based builds
+other than TF2 also read the taunting condition (`m_nPlayerCond` bit 7) off the player every tick
+(`STAC_POLL_TAUNT_COND`), so the aim checks skip taunts without that plugin too; Halloween conditions
+still need it.
+
+**Fortress Forever buttons (multigame.6).** FF's `in_buttons.h` defines `IN_TOGGLEGRENADE2` as `1 << 26`
+and `IN_ATTACK3` as `1 << 27`. The invalid-usercmd check flagged every button bit from 26 up, so each
+two-tap grenade throw on FF counted toward a ban (5 by default). The FF build now flags bits from 28
+up (`STAC_FIRST_INVALID_BUTTON`); every other build keeps 26.
 
 ### Fortress Forever, HL2DM and CS:S (`STAC_NO_TF2_API`)
 

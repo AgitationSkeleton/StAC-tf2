@@ -42,6 +42,15 @@ support still runs. The full list of changes, and what was and wasn't verified, 
   hooking get a `trigger_teleport` fallback for the backtrack patch.
 - **The Updater is compiled out of release builds**, because upstream's update URL serves the TF2
   build and would replace a build for another game.
+- **Checks that only hold on TF2 are TF2-only.** The bogus-achievement, `cl_thirdperson` and
+  `windows_speaker_config` checks, and the 90 cap on `fov_desired` (130 elsewhere), encode facts about
+  TF2's client. On other games they banned legit players, so only the TF2 build runs them.
+- **Fortress Forever's grenade buttons aren't "invalid input".** FF uses button bits 26 and 27
+  (`IN_TOGGLEGRENADE2`, `IN_ATTACK3`), so the FF build only flags bits from 28 up. Before multigame.6,
+  every two-tap grenade throw on FF counted toward an invalid-usercmd ban.
+- **Taunts are read off the player too.** On TF2-based games other than TF2, StAC also reads the
+  taunting condition from `m_nPlayerCond`, so the aim checks skip taunts even when the game's tools
+  plugin isn't loaded.
 
 ## Install
 
@@ -62,11 +71,32 @@ HL2DM and CS:S don't need one). StAC needs it for the
 `TF2_OnConditionAdded`/`Removed` forwards that tell it when a player is taunting:
 [SM-TF2Classified-Tools](https://github.com/AgitationSkeleton/SM-TF2Classified-Tools),
 [SM-TF2GoldRush-Tools](https://github.com/AgitationSkeleton/SM-TF2GoldRush-Tools),
-SM-Open-Fortress-Tools or PF2-Tools. Without it, StAC still loads but can't tell when a player is taunting.
+SM-Open-Fortress-Tools or PF2-Tools. Without it, StAC still loads and reads the taunting condition off
+the player itself (multigame.6), but Halloween conditions aren't tracked.
 
 An existing `stac.cfg` keeps its old values: SourceMod never overwrites a value that is already in
 the file. To turn the bunnyhop check off on a server that already has one, set
 `stac_max_bhop_detections "-1"` there.
+
+## Start in log-only mode
+
+Outside TF2, nobody has run these checks against real players for long. Start a new server in
+log-only mode, play on it normally, read the logs, and only then turn bans on:
+
+```
+stac_max_aimsnap_detections "0"          // 0 = detect and log, never ban (-1 = don't check at all)
+stac_max_psilent_detections "0"
+stac_max_cmdnum_detections "0"
+stac_max_fakeang_detections "0"
+stac_max_invalid_usercmd_detections "0"
+stac_ban_for_misccheats "0"
+stac_debug "1"                           // also logs every join and every cvar check result
+```
+
+`stac_debug 1` writes each player's join and each cvar check to `addons/sourcemod/logs/stac/`, so a
+quiet log shows that StAC really checked the player rather than that it never ran. Also make sure the
+server writes game logs (`log on` in the server config), so you can see who played and when.
+StAC skips the aim checks on servers with more than 33 slots, so test those on a smaller server.
 
 ## Building
 
@@ -86,8 +116,10 @@ Every build has been loaded on a LAN test copy of its game's server, with bots o
 
 The Fortress Forever gamedata overrides have only been run on a Windows server.
 
-Detections on real players, and Connect's early-connect hook outside TF2, have not been tested with
-a human client yet. Reports are welcome in this fork's issues. Please don't report fork-specific
+On live servers (TF2 Classified, Gold Rush, Open Fortress, PF2, Fortress Forever, HL2DM and CS:S),
+normal play in log-only mode with `stac_debug 1` produced no detections: each session got 27 to 54 cvar
+checks. The aim checks still need more real-player data outside TF2, and Connect's early-connect hook
+outside TF2 hasn't been tested with a human client yet. Reports are welcome in this fork's issues. Please don't report fork-specific
 problems upstream.
 
 ## Credits

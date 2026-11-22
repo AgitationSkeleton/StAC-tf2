@@ -101,6 +101,10 @@
     #define STAC_NO_TF2_API
     #define STAC_PLAYER_CLASS       "CFFPlayer"
     #define STAC_FIRE_BULLETS_TE    "Shotgun Shot"
+    // FF's in_buttons.h: IN_TOGGLEGRENADE2 (1 << 26) and IN_ATTACK3 (1 << 27) are real buttons
+    // (+togglegren2, two-tap grenades), so the invalid-usercmd check starts at bit 28 here.
+    // Without this every legit two-tap grenade throw counted as an invalid usercmd (5 = a ban).
+    #define STAC_FIRST_INVALID_BUTTON   (1 << 28)
     // FF's client has no fov_desired, and the engine FF ships still registers windows_speaker_config
     #define STAC_NO_FOV_DESIRED
     #define STAC_NO_SPEAKER_CONFIG_CHECK
@@ -175,6 +179,19 @@
     #define STAC_FOV_MAX            130
 #else
     #define STAC_FOV_MAX            90
+#endif
+
+// The lowest button bit no legit client sends (the invalid-usercmd check). TF2 and the TF2/SDK games
+// stop at IN_ATTACK3 (1 << 25); the comparison is signed, so IN_TYPING (1 << 31, TF2C/OF/PF2) passes.
+#if !defined STAC_FIRST_INVALID_BUTTON
+    #define STAC_FIRST_INVALID_BUTTON   (1 << 26)
+#endif
+
+// TF2-family games other than TF2: the taunting condition is also read straight off the player
+// (m_nPlayerCond bit TFCond_Taunting), because StAC's TF2_OnCondition* forwards only arrive when the
+// game's TF2-tools plugin is loaded (TF2 Classified 27980 had none: no taunt gate for the aim checks).
+#if !defined STAC_GAME_TF2 && !defined STAC_NO_TF2_API
+    #define STAC_POLL_TAUNT_COND
 #endif
 
 // TF2 and the TF2-based games all call the player class CTFPlayer and send hitscan shots as "Fire Bullets"

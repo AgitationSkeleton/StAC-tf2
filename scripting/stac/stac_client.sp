@@ -482,6 +482,33 @@ public void TF2_OnConditionAdded(int cl, TFCond condition)
     }
 }
 
+#if defined STAC_POLL_TAUNT_COND
+/** Taunting straight from m_nPlayerCond (TFCond_Taunting = bit 7 in TF2, TF2C, OF, PF2 and Gold Rush),
+ *  for servers without the tools plugin's TF2_OnCondition* forwards; the end of a taunt sets
+ *  timeSinceTaunt like the forward does. */
+void PollTauntCond(int cl)
+{
+    if (tauntCondProp == 0)
+    {
+        tauntCondProp = HasEntProp(cl, Prop_Send, "m_nPlayerCond") ? 1 : -1;
+        if (tauntCondProp < 0)
+        {
+            StacLog("No m_nPlayerCond on this game: taunts are only known from TF2_OnCondition* forwards.");
+        }
+    }
+    if (tauntCondProp < 0)
+    {
+        return;
+    }
+    bool now = (GetEntProp(cl, Prop_Send, "m_nPlayerCond") & (1 << view_as<int>(TFCond_Taunting))) != 0;
+    if (polledTaunting[cl] && !now)
+    {
+        timeSinceTaunt[cl] = GetEngineTime();
+    }
+    polledTaunting[cl] = now;
+}
+#endif
+
 public void TF2_OnConditionRemoved(int cl, TFCond condition)
 {
     if (IsValidClient(cl))
@@ -593,6 +620,9 @@ void ClearClBasedVars(int userid)
 
     highGrav                [cl] = false;
     playerTaunting          [cl] = false;
+#if defined STAC_POLL_TAUNT_COND
+    polledTaunting          [cl] = false;
+#endif
     playerInBadCond         [cl] = 0;
     userBanQueued           [cl] = false;
     sensFor                 [cl] = 0.0;
