@@ -358,7 +358,8 @@ void bhopCheck(int cl)
 
     // get movement flags
     // 5x faster than GetEntityFlags!!!
-    int flags = GetEntData(cl, Offset_m_fFlags);
+    // (some games have no CTFPlayer::m_fFlags sendprop, see DoStACGamedata)
+    int flags = Offset_m_fFlags != -1 ? GetEntData(cl, Offset_m_fFlags) : GetEntityFlags(cl);
 
     bool noban;
     if (stac_max_bhop_detections.IntValue == 0)

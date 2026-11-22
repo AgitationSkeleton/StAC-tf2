@@ -529,7 +529,8 @@ Action OnAllClientCommands(int cl, const char[] command, int argc)
     {
         return Plugin_Continue;
     }
-    if (signonStateFor[cl] <= SIGNONSTATE_SPAWN)
+    // without the memory hacks (some games/builds) we don't know the client's signon state
+    if (memhacksActive && signonStateFor[cl] <= SIGNONSTATE_SPAWN)
     {
         /*
         char msg[1024];

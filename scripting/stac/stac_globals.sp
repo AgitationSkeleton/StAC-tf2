@@ -192,6 +192,10 @@ int signonStateFor[TFMAXPLAYERS+1] = {-1, ...};
 #define SIGNONSTATE_CHANGELEVEL 7   // server is changing level, please wait
 
 
+// true once every detour / sdkcall in stac_memory.sp is set up. Some games/builds run without them.
+bool memhacksActive;
+
+#if !defined STAC_NO_MEMHACKS
 // Address Offset_PacketSize;
 Address Offset_SignonState;
 Address Offset_IClient_HACK;
@@ -201,6 +205,7 @@ GameData stac_gamedata;
 Handle SDKCall_GetPlayerSlot;
 Handle SDKCall_GetMsgHandler;
 Handle SDKCall_GetTimeSinceLastReceived;
+#endif
 
 float   timeSinceLastRecvFor    [TFMAXPLAYERS+1];
 int Offset_m_fFlags;

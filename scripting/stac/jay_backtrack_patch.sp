@@ -46,7 +46,14 @@ void OnPluginStart_jaypatch()
 
 	HookEvent("player_spawn", event_teleported, EventHookMode_Post);
 
+#if defined STAC_NO_ENTITY_OUTPUTS
+	// SDKTools can't hook entity outputs in this game: catch trigger_teleport end touches with SDKHooks instead
+	int ent = -1;
+	while ((ent = FindEntityByClassname(ent, "trigger_teleport")) != -1)
+		SDKHook(ent, SDKHook_EndTouchPost, map_teleport_endtouch);
+#else
 	HookEntityOutput("trigger_teleport", "OnEndTouch", map_teleport);
+#endif
 
 	hcvar[CVAR_ENABLE] = CreateConVar("jay_backtrack_enable", "1",
 		"Enable Jay's Backtracking patch.",
@@ -86,6 +93,21 @@ Action event_teleported(Event event, const char[] name, bool dontBroadcast)
 	return Plugin_Continue;
 }
 
+#if defined STAC_NO_ENTITY_OUTPUTS
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if (StrEqual(classname, "trigger_teleport", false))
+		SDKHook(entity, SDKHook_EndTouchPost, map_teleport_endtouch);
+}
+
+void map_teleport_endtouch(int entity, int other)
+{
+	if (!is_player_valid(other) || IsFakeClient(other))
+		return;
+
+	time_teleport[other] = GetGameTime();
+}
+#else
 void map_teleport(const char[] output, int caller, int activator, float delay)
 {
 	if (!is_player_valid(activator) || IsFakeClient(activator))
@@ -93,6 +115,7 @@ void map_teleport(const char[] output, int caller, int activator, float delay)
 
 	time_teleport[activator] = GetGameTime();
 }
+#endif
 
 void OnClientPutInServer_jaypatch(int client)
 {

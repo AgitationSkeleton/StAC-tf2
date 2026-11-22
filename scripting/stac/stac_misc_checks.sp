@@ -37,6 +37,8 @@ public Action OnClientSayCommand(int cl, const char[] command, const char[] sArg
     return Plugin_Continue;
 }
 
+#if !defined STAC_NO_MEMHACKS
+// only the name sanitizing detour in stac_memory.sp bans for names
 Action BanName(Handle timer, int userid)
 {
     int cl = GetClientOfUserId(userid);
@@ -62,6 +64,7 @@ Action BanName(Handle timer, int userid)
     }
     return Plugin_Continue;
 }
+#endif
 
 // block long commands - i don't know if this actually does anything but it makes me feel better
 public Action OnClientCommand(int cl, int args)

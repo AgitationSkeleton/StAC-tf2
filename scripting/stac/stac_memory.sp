@@ -2,141 +2,30 @@
     Gamedata
 */
 
+/*
+    The memory hacks below (3 DHooks detours + 3 virtual SDKCalls) give StAC:
+      - each client's signon state, so usercmds and client commands sent before signon get eaten
+      - CNetChan::GetTimeSinceLastReceived, used to spot lagging clients
+      - newline / rtl / ltr char stripping in player names
+    Everything else in StAC works without them.
+
+    STAC_STRICT_MEMHACKS (TF2):  any failure here is fatal, like upstream.
+    otherwise:                   any failure turns all of them off, logs why, and StAC keeps running.
+    STAC_NO_MEMHACKS:            compiled out entirely (games where DHooks/SDKCalls crash the server).
+*/
+
 void DoStACGamedata()
 {
-    // Our base gamedata file
-    stac_gamedata = LoadGameConfigFile("stac");
-    if (!stac_gamedata)
+    memhacksActive = false;
+
+#if defined STAC_NO_MEMHACKS
+    StacLog("Memory hacks are compiled out of this build (%s). Signon-state, netchan and name sanitizing hooks are off.", STAC_GAME_DESC);
+#else
+    if (SetUpMemHacks())
     {
-        SetFailState("Failed to load StAC gamedata.");
-        return;
+        memhacksActive = true;
     }
-
-    // MEMORY OFFSETS
-
-    /*
-        Memory offsets
-    */
-    {
-        // offset from client's signon state, offset from CBaseClient::this (?)
-        Offset_SignonState  = view_as<Address>( GameConfGetOffset(stac_gamedata, "Offset_SignonState") );
-        // Hack, see gamedata
-        Offset_IClient_HACK = view_as<Address>( GameConfGetOffset(stac_gamedata, "Offset_IClient_HACK") );
-    }
-
-    // SIGNATURES
-
-    /*
-        CNetChan::ProcessPacket - for getting client's signonstate
-    */
-    {
-        Handle hProcessPacket = DHookCreateFromConf(stac_gamedata, "CNetChan::ProcessPacket");
-        if (!hProcessPacket)
-        {
-            SetFailState("Failed to setup detour for CNetChan::ProcessPacket");
-        }
-        // detour
-        if ( !DHookEnableDetour(hProcessPacket, false, Detour_CNetChan__ProcessPacket) )
-        {
-            SetFailState("Failed to detour CNetChan::ProcessPacket.");
-        }
-        PrintToServer("CNetChan::ProcessPacket detoured!");
-    }
-
-    /*
-        CBasePlayer::ProcessUsercmds - for eating usercmds from players who aren't signed on
-    */
-    {
-        Handle CBasePlayer__ProcessUsercmds = DHookCreateFromConf( stac_gamedata, "CBasePlayer::ProcessUsercmds" );
-        if ( !CBasePlayer__ProcessUsercmds )
-        {
-            SetFailState( "Failed to setup detour for CBasePlayer::ProcessUsercmds" );
-        }
-
-        // detour
-        if ( !DHookEnableDetour( CBasePlayer__ProcessUsercmds, false, Detour_CBasePlayer__ProcessUsercmds ) )
-        {
-            SetFailState( "Failed to detour CBasePlayer::ProcessUsercmds." );
-        }
-        PrintToServer( "CBasePlayer::ProcessUsercmds detoured!" );
-    }
-    /*
-        CBasePlayer::ProcessUsercmds - for eating usercmds from players who aren't signed on
-    */
-    {
-        Handle CVEngineServer__GetClientConVarValue = DHookCreateFromConf( stac_gamedata, "CVEngineServer::GetClientConVarValue" );
-        if ( !CVEngineServer__GetClientConVarValue )
-        {
-            SetFailState( "Failed to setup detour for CVEngineServer::GetClientConVarValue" );
-        }
-
-        // detour
-        if ( !DHookEnableDetour( CVEngineServer__GetClientConVarValue, true, Detour_CVEngineServer__GetClientConVarValue ) )
-        {
-            SetFailState( "Failed to detour CVEngineServer::GetClientConVarValue." );
-        }
-        PrintToServer( "CVEngineServer::GetClientConVarValue detoured!" );
-    }
-
-
-
-
-
-    // VTABLE OFFSETS
-
-    /*
-        CBaseClient::GetPlayerSlot - for converting IClient* to ent idx
-    */
-    {
-        StartPrepSDKCall( SDKCall_Raw );
-        PrepSDKCall_SetFromConf( stac_gamedata, SDKConf_Virtual, "CBaseClient::GetPlayerSlot" );
-        PrepSDKCall_SetReturnInfo( SDKType_PlainOldData, SDKPass_Plain );
-        SDKCall_GetPlayerSlot = EndPrepSDKCall();
-        if ( SDKCall_GetPlayerSlot != INVALID_HANDLE )
-        {
-            PrintToServer( "CBaseClient::GetPlayerSlot set up!" );
-        }
-        else
-        {
-            SetFailState( "Failed to get CBaseClient::GetPlayerSlot offset." );
-        }
-    }
-
-    /*
-        CNetChan::GetMsgHandler - for converting CNetChan::this* to a IClient*
-    */
-    {
-        StartPrepSDKCall( SDKCall_Raw );
-        PrepSDKCall_SetFromConf( stac_gamedata, SDKConf_Virtual, "CNetChan::GetMsgHandler" );
-        PrepSDKCall_SetReturnInfo( SDKType_PlainOldData, SDKPass_Plain );
-        SDKCall_GetMsgHandler = EndPrepSDKCall();
-        if ( SDKCall_GetMsgHandler != INVALID_HANDLE )
-        {
-            PrintToServer( "CNetChan::GetMsgHandler set up!" );
-        }
-        else
-        {
-            SetFailState( "Failed to get CNetChan::GetMsgHandler offset." );
-        }
-    }
-
-    /*
-        CNetChan::GetTimeSinceLastReceived
-    */
-    {
-        StartPrepSDKCall( SDKCall_Raw );
-        PrepSDKCall_SetFromConf( stac_gamedata, SDKConf_Virtual, "CNetChan::GetTimeSinceLastReceived" );
-        PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_Plain);
-        SDKCall_GetTimeSinceLastReceived = EndPrepSDKCall();
-        if ( SDKCall_GetTimeSinceLastReceived != INVALID_HANDLE )
-        {
-            PrintToServer( "CNetChan::GetTimeSinceLastReceived set up!" );
-        }
-        else
-        {
-            SetFailState( "Failed to get CNetChan::GetTimeSinceLastReceived offset." );
-        }
-    }
+#endif
 
     // ENTPROP OFFSETS
 
@@ -145,12 +34,167 @@ void DoStACGamedata()
 
     if ( Offset_m_fFlags == -1 )
     {
+#if defined STAC_GAME_TF2
         SetFailState( "Failed to get CTFPlayer::m_fFlags offset." );
+#else
+        // bhop check falls back to GetEntityFlags
+        StacLog("No CTFPlayer::m_fFlags sendprop in this game, using GetEntityFlags instead.");
+#endif
     }
+}
+
+#if !defined STAC_NO_MEMHACKS
+
+// Fails the plugin in strict builds, otherwise just logs. Always returns false.
+bool MemHackFail(const char[] fmt, any ...)
+{
+    char msg[256];
+    VFormat(msg, sizeof(msg), fmt, 2);
+#if defined STAC_STRICT_MEMHACKS
+    SetFailState("%s", msg);
+#else
+    StacLog("%s\nRunning without memory hacks: signon-state, netchan and name sanitizing hooks are off.", msg);
+#endif
+    return false;
+}
+
+Handle PrepVirtualCall(const char[] name, SDKType returnType)
+{
+    StartPrepSDKCall( SDKCall_Raw );
+    if ( !PrepSDKCall_SetFromConf( stac_gamedata, SDKConf_Virtual, name ) )
+    {
+        // EndPrepSDKCall would still hand back a handle for a call with no address
+        EndPrepSDKCall();
+        return null;
+    }
+    PrepSDKCall_SetReturnInfo( returnType, SDKPass_Plain );
+    return EndPrepSDKCall();
+}
+
+// Everything is looked up and validated first, and only then are the detours turned on,
+// so a half-working setup never runs (a ProcessUsercmds detour without signon states would eat every usercmd).
+bool SetUpMemHacks()
+{
+    // Our base gamedata file
+    stac_gamedata = LoadGameConfigFile("stac");
+    if (!stac_gamedata)
+    {
+        return MemHackFail("Failed to load StAC gamedata.");
+    }
+
+    // MEMORY OFFSETS
+
+    /*
+        Memory offsets
+    */
+    {
+        int signon  = GameConfGetOffset(stac_gamedata, "Offset_SignonState");
+        int iclhack = GameConfGetOffset(stac_gamedata, "Offset_IClient_HACK");
+        if (signon == -1 || iclhack == -1)
+        {
+            return MemHackFail("StAC gamedata has no Offset_SignonState / Offset_IClient_HACK for this game.");
+        }
+        // offset from client's signon state, offset from CBaseClient::this (?)
+        Offset_SignonState  = view_as<Address>( signon );
+        // Hack, see gamedata
+        Offset_IClient_HACK = view_as<Address>( iclhack );
+    }
+
+    // VTABLE OFFSETS
+
+    /*
+        CBaseClient::GetPlayerSlot - for converting IClient* to ent idx
+    */
+    SDKCall_GetPlayerSlot = PrepVirtualCall( "CBaseClient::GetPlayerSlot", SDKType_PlainOldData );
+    if ( !SDKCall_GetPlayerSlot )
+    {
+        return MemHackFail( "Failed to get CBaseClient::GetPlayerSlot offset." );
+    }
+    PrintToServer( "CBaseClient::GetPlayerSlot set up!" );
+
+    /*
+        CNetChan::GetMsgHandler - for converting CNetChan::this* to a IClient*
+    */
+    SDKCall_GetMsgHandler = PrepVirtualCall( "CNetChan::GetMsgHandler", SDKType_PlainOldData );
+    if ( !SDKCall_GetMsgHandler )
+    {
+        return MemHackFail( "Failed to get CNetChan::GetMsgHandler offset." );
+    }
+    PrintToServer( "CNetChan::GetMsgHandler set up!" );
+
+    /*
+        CNetChan::GetTimeSinceLastReceived
+    */
+    SDKCall_GetTimeSinceLastReceived = PrepVirtualCall( "CNetChan::GetTimeSinceLastReceived", SDKType_Float );
+    if ( !SDKCall_GetTimeSinceLastReceived )
+    {
+        return MemHackFail( "Failed to get CNetChan::GetTimeSinceLastReceived offset." );
+    }
+    PrintToServer( "CNetChan::GetTimeSinceLastReceived set up!" );
+
+    // SIGNATURES
+
+    /*
+        CNetChan::ProcessPacket - for getting client's signonstate
+    */
+    DynamicDetour hProcessPacket = DynamicDetour.FromConf(stac_gamedata, "CNetChan::ProcessPacket");
+    if (!hProcessPacket)
+    {
+        return MemHackFail("Failed to setup detour for CNetChan::ProcessPacket");
+    }
+
+    /*
+        CBasePlayer::ProcessUsercmds - for eating usercmds from players who aren't signed on
+    */
+    DynamicDetour hProcessUsercmds = DynamicDetour.FromConf( stac_gamedata, "CBasePlayer::ProcessUsercmds" );
+    if ( !hProcessUsercmds )
+    {
+        delete hProcessPacket;
+        return MemHackFail( "Failed to setup detour for CBasePlayer::ProcessUsercmds" );
+    }
+
+    /*
+        CVEngineServer::GetClientConVarValue - for sanitizing client names
+    */
+    DynamicDetour hGetClientConVarValue = DynamicDetour.FromConf( stac_gamedata, "CVEngineServer::GetClientConVarValue" );
+    if ( !hGetClientConVarValue )
+    {
+        delete hProcessPacket;
+        delete hProcessUsercmds;
+        return MemHackFail( "Failed to setup detour for CVEngineServer::GetClientConVarValue" );
+    }
+
+    // detours
+    if ( !hProcessPacket.Enable(Hook_Pre, Detour_CNetChan__ProcessPacket) )
+    {
+        return MemHackFail("Failed to detour CNetChan::ProcessPacket.");
+    }
+    PrintToServer("CNetChan::ProcessPacket detoured!");
+
+    if ( !hProcessUsercmds.Enable(Hook_Pre, Detour_CBasePlayer__ProcessUsercmds) )
+    {
+        hProcessPacket.Disable(Hook_Pre, Detour_CNetChan__ProcessPacket);
+        return MemHackFail( "Failed to detour CBasePlayer::ProcessUsercmds." );
+    }
+    PrintToServer( "CBasePlayer::ProcessUsercmds detoured!" );
+
+    if ( !hGetClientConVarValue.Enable(Hook_Post, Detour_CVEngineServer__GetClientConVarValue) )
+    {
+        hProcessPacket.Disable(Hook_Pre, Detour_CNetChan__ProcessPacket);
+        hProcessUsercmds.Disable(Hook_Pre, Detour_CBasePlayer__ProcessUsercmds);
+        return MemHackFail( "Failed to detour CVEngineServer::GetClientConVarValue." );
+    }
+    PrintToServer( "CVEngineServer::GetClientConVarValue detoured!" );
+
+    return true;
 }
 
 public MRESReturn Detour_CBasePlayer__ProcessUsercmds(int entity, DHookParam hParams)
 {
+    if (!memhacksActive)
+    {
+        return MRES_Ignored;
+    }
     // Could this ever throw? We may one day find out...
     if (IsFakeClient(entity))
     {
@@ -330,3 +374,5 @@ Action Timer_SendStacNameNotif(Handle timer, DataPack pack)
 
     return Plugin_Continue;
 }
+
+#endif // !STAC_NO_MEMHACKS

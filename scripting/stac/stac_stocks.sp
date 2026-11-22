@@ -578,6 +578,11 @@ bool IsActuallyNullString(char[] somestring)
 
 bool IsHalloweenCond(TFCond condition)
 {
+#if defined STAC_NO_HALLOWEEN_CONDS
+    // this game numbers its conds differently past the base ones, TF2's Halloween ids would match unrelated conds
+    #pragma unused condition
+    return false;
+#else
     if
     (
            condition == TFCond_HalloweenKart
@@ -596,6 +601,7 @@ bool IsHalloweenCond(TFCond condition)
         return true;
     }
     return false;
+#endif
 }
 
 /********** MISC CLIENT CHECKS **********/
@@ -726,10 +732,14 @@ bool IsZeroVector(const float vec[3])
 
 public void OnLibraryAdded(const char[] name)
 {
+#if defined _updater_included
     if (StrEqual(name, "updater"))
     {
         Updater_AddPlugin(UPDATE_URL);
     }
+#else
+    #pragma unused name
+#endif
 }
 
 /********** PER-GAME HELPERS **********/
@@ -742,6 +752,16 @@ void HookEventSafe(const char[] name, EventHook callback, EventHookMode mode = E
         StacLog("Game has no \"%s\" event, not hooking it.", name);
     }
 }
+
+#if defined STAC_SOFT_EXTENSIONS
+void WarnIfExtMissing(const char[] file, const char[] feature)
+{
+    if (GetExtensionFileStatus(file) != 1)
+    {
+        StacLog("Optional extension %s isn't running - disabled: %s", file, feature);
+    }
+}
+#endif
 
 // Set a cvar only if this game has it
 void SetConVarIntIfExists(const char[] name, int value)

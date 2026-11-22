@@ -9,12 +9,26 @@
 // if you have to make this any bigger there's probably an evil bug in json parsing code somewhere -sappho
 #pragma dynamic 8192 * 8
 
+// which game this build targets (STAC_GAME_TF2 / _TF2C / _GOLDRUSH / _OF / _PF2), see the file for details
+#include "stac/stac_game.sp"
+
 #include <sourcemod>
 #include <regex>
 #include <sdktools>
 #include <sdkhooks>
+// TF2 enums, stocks and forwards. Outside TF2 the TF2 Tools extension doesn't load, so don't require it:
+// StAC only uses its forwards (TF2_OnConditionAdded etc.), which the per-game tools plugins
+// (tf2classified.smx, tf2goldrush.smx, openfortress.smx, pf2.smx) fire under the same names.
+#if !defined STAC_GAME_TF2
+    #undef REQUIRE_EXTENSIONS
+#endif
 #include <tf2_stocks>
+#if !defined STAC_GAME_TF2
+    #define REQUIRE_EXTENSIONS
+#endif
+#if !defined STAC_NO_MEMHACKS
 #include <dhooks>
+#endif
 
 // hack for unrestricted maxplayers. sorry.
 #if defined (MAXPLAYERS)
@@ -25,7 +39,10 @@
 #if !defined (AUTOLOAD_EXTENSIONS)
 #define AUTOLOAD_EXTENSIONS
 #endif
-// REQUIRED extensions:
+// REQUIRED extensions (optional in STAC_SOFT_EXTENSIONS builds - see stac/stac_game.sp):
+#if defined STAC_SOFT_EXTENSIONS
+    #undef REQUIRE_EXTENSIONS
+#endif
 // SteamWorks for being able to make webrequests: https://forums.alliedmods.net/showthread.php?t=229556
 // Get latest version from here: https://github.com/KyleSanderson/SteamWorks/releases
 #include <SteamWorks>
@@ -39,6 +56,9 @@
 // Get latest version from here: https://builds.limetech.io/?p=webcon
 #include <conplex>
 #undef AUTOLOAD_EXTENSIONS
+#if defined STAC_SOFT_EXTENSIONS
+    #define REQUIRE_EXTENSIONS
+#endif
 
 // external incs
 #include <achievements>
@@ -47,7 +67,9 @@
 #include <autoexecconfig>
 #include <json>
 #undef REQUIRE_PLUGIN
+#if !defined STAC_NO_UPDATER
 #tryinclude <updater>
+#endif
 #tryinclude <sourcebanspp>
 #tryinclude <materialadmin>
 #tryinclude <discord>
@@ -116,10 +138,12 @@ public void OnPluginStart()
     checkOS();
 
     // updater
+#if defined _updater_included
     if (LibraryExists("updater"))
     {
         Updater_AddPlugin(UPDATE_URL);
     }
+#endif
 
     // reg admin commands
     RegConsoleCmd("sm_stac_checkall",   checkAdmin, "Force check all client convars (ALL CLIENTS) for anticheat stuff");
@@ -317,12 +341,46 @@ void StopIncompatPlugins()
 
 void EngineSanityChecks()
 {
-    // check if tf2, unload if not
-    // strip when sdk13 support
+    // make sure this build matches the game it's running on
+    char gamefolder[PLATFORM_MAX_PATH];
+    GetGameFolderName(gamefolder, sizeof(gamefolder));
+    // some servers pass -game as an absolute path, only compare the last path component
+    int lastSep = FindCharInString(gamefolder, '/', true);
+    int lastBackslash = FindCharInString(gamefolder, '\\', true);
+    if (lastBackslash > lastSep)
+    {
+        lastSep = lastBackslash;
+    }
+    if (!StrEqual(gamefolder[lastSep + 1], STAC_GAME_FOLDER, false))
+    {
+        SetFailState("[StAC] This build of StAC is for %s (game folder \"%s\") but the server is running \"%s\". Install the StAC build for this game. Aborting!",
+            STAC_GAME_DESC, STAC_GAME_FOLDER, gamefolder[lastSep + 1]);
+    }
+
+#if defined STAC_ENGINE_SDK2013
+    if (GetEngineVersion() != Engine_SDK2013)
+    {
+        SetFailState("[StAC] This build of StAC expects the Source SDK 2013 engine! Aborting!");
+    }
+#else
     if (GetEngineVersion() != Engine_TF2)
     {
-        SetFailState("[StAC] This plugin is only supported for TF2! Aborting!");
+        SetFailState("[StAC] This build of StAC expects the TF2 engine! Aborting!");
     }
+#endif
+
+#if defined STAC_SOFT_EXTENSIONS
+    // these are optional for this game - say which features are off because they're missing
+    static bool warnedExts;
+    if (!warnedExts)
+    {
+        warnedExts = true;
+        WarnIfExtMissing("SteamWorks.ext",      "public ip lookup for notifications (falls back to the hostip/ip cvars)");
+        WarnIfExtMissing("connect.ext",         "steamid spoof / connect spam protection (OnClientPreConnectEx)");
+        WarnIfExtMissing("sourcetvmanager.ext", "demo name + tick in ban reasons and notifications");
+        WarnIfExtMissing("conplex.ext",         "rcon hardening");
+    }
+#endif
 
     if ( MaxClients > 33 || GetMaxHumanPlayers() > 33 )
     {
