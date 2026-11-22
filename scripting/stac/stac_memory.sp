@@ -75,7 +75,14 @@ Handle PrepVirtualCall(const char[] name, SDKType returnType)
 // so a half-working setup never runs (a ProcessUsercmds detour without signon states would eat every usercmd).
 bool SetUpMemHacks()
 {
-    // Our base gamedata file
+    // Our base gamedata file. SourceMod 1.11 throws (instead of returning null) when the file is
+    // missing, which would abort OnPluginStart before the no-memhacks fallback - check first.
+    char gdpath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, gdpath, sizeof(gdpath), "gamedata/stac.txt");
+    if (!FileExists(gdpath))
+    {
+        return MemHackFail("No StAC gamedata (gamedata/stac.txt) for this game.");
+    }
     stac_gamedata = LoadGameConfigFile("stac");
     if (!stac_gamedata)
     {

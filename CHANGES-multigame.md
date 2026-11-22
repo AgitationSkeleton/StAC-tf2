@@ -27,6 +27,9 @@ switches. `tools/build_release.py` builds one zip per game.
   (asherkin/webcon) publishes no license, so this fork doesn't redistribute its binary, gamedata or
   include in release zips. TF2 servers that already run upstream StAC keep their Conplex. Without it,
   StAC logs "Optional extension conplex.ext isn't running - disabled: rcon hardening" once.
+- **A missing `gamedata/stac.txt` is checked before it is loaded.** On SourceMod 1.11,
+  `LoadGameConfigFile` throws instead of returning null for a missing file, which stopped StAC from
+  starting on Open Fortress (fixed in multigame.2; found during the first live rollout).
 - **SourceTV Manager and SteamWorks calls are guarded.** If the extension isn't loaded, the demo
   name in ban reasons is skipped, and the server IP comes from the `hostip` cvar.
 
