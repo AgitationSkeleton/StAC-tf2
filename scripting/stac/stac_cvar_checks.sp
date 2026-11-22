@@ -20,7 +20,10 @@ char miscVars[][] =
     "host_timescale",       // ~= 1.0   | replicated
     "cl_cmdrate",           // >= 10    | archive userinfo
     // this is a useless check but we check it anyway
+    // (not every client has it, and an unknown cvar gets reported as "could not query")
+#if !defined STAC_NO_FOV_DESIRED
     "fov_desired",          // !        | client archive userinfo
+#endif
     "cl_interpolate",       // == 1     | devonly userinfo notconnected
 #if !defined STAC_NO_THIRDPERSON_CHECK
     "cl_thirdperson",       // == 0     | devonly client archive userinfo notconnected

@@ -49,6 +49,9 @@ void OnPluginStart_jaypatch()
 #if defined STAC_NO_ENTITY_OUTPUTS
 	// SDKTools can't hook entity outputs in this game: catch trigger_teleport end touches with SDKHooks instead
 	int ent = -1;
+#if defined STAC_VERIFY_SDKHOOK_OFFSETS
+	if (SDKHookOffsetVerified(SDKHook_EndTouchPost))
+#endif
 	while ((ent = FindEntityByClassname(ent, "trigger_teleport")) != -1)
 		SDKHook(ent, SDKHook_EndTouchPost, map_teleport_endtouch);
 #else
@@ -96,7 +99,11 @@ Action event_teleported(Event event, const char[] name, bool dontBroadcast)
 #if defined STAC_NO_ENTITY_OUTPUTS
 public void OnEntityCreated(int entity, const char[] classname)
 {
+#if defined STAC_VERIFY_SDKHOOK_OFFSETS
+	if (StrEqual(classname, "trigger_teleport", false) && SDKHookOffsetVerified(SDKHook_EndTouchPost))
+#else
 	if (StrEqual(classname, "trigger_teleport", false))
+#endif
 		SDKHook(entity, SDKHook_EndTouchPost, map_teleport_endtouch);
 }
 

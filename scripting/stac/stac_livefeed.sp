@@ -278,7 +278,11 @@ bool IsValidLiveFeedViewer(int client)
             IsValidAdmin(client)
             &&
             (
+#if defined STAC_NO_TF2_API
+                GetClientTeam(client) == STAC_TEAM_SPECTATOR
+#else
                 TF2_GetClientTeam(client) == TFTeam_Spectator
+#endif
                 // ||
                 // !IsPlayerAlive(client)
             )

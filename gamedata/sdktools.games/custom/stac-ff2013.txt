@@ -1,0 +1,22 @@
+"Games"
+{
+	/*
+	   Fortress Forever 2013 (Source SDK 2013), shipped with the StAC Fortress Forever build.
+	   SourceMod's game.ff.txt has FF 2.4's PlayerRunCmd (355); on FF 2013 that isn't
+	   CBasePlayer::PlayerRunCommand, so OnPlayerRunCmd never fires for any plugin.
+	   Read from the CFFPlayer vtable in FF's server.so (Windows index = Linux index - 1) and
+	   checked on a Windows test server with bots: OnPlayerRunCmd fires ~66 times a second per
+	   player with increasing command numbers.
+	*/
+	"FortressForever"
+	{
+		"Offsets"
+		{
+			"PlayerRunCmd"
+			{
+				"windows"	"428"
+				"linux"		"429"
+			}
+		}
+	}
+}

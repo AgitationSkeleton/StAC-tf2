@@ -152,6 +152,9 @@ Action checkNativesEtc(Handle timer)
         waitStatus = true;
     }
     // are we in mann vs machine? (only TF2's gamerules have this prop)
+#if defined STAC_NO_TF2_API
+    MVM = false;
+#else
     if (FindSendPropInfo("CTFGameRulesProxy", "m_bPlayingMannVsMachine") > 0 && GameRules_GetProp("m_bPlayingMannVsMachine") == 1)
     {
         MVM = true;
@@ -160,6 +163,7 @@ Action checkNativesEtc(Handle timer)
     {
         MVM = false;
     }
+#endif
 
     return Plugin_Continue;
 }

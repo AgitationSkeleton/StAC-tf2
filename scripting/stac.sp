@@ -9,7 +9,7 @@
 // if you have to make this any bigger there's probably an evil bug in json parsing code somewhere -sappho
 #pragma dynamic 8192 * 8
 
-// which game this build targets (STAC_GAME_TF2 / _TF2C / _GOLDRUSH / _OF / _PF2), see the file for details
+// which game this build targets (STAC_GAME_TF2 / _TF2C / _GOLDRUSH / _OF / _PF2 / _FF / _HL2MP / _CSS), see the file for details
 #include "stac/stac_game.sp"
 
 #include <sourcemod>
@@ -19,12 +19,15 @@
 // TF2 enums, stocks and forwards. Outside TF2 the TF2 Tools extension doesn't load, so don't require it:
 // StAC only uses its forwards (TF2_OnConditionAdded etc.), which the per-game tools plugins
 // (tf2classified.smx, tf2goldrush.smx, openfortress.smx, pf2.smx) fire under the same names.
+// Games outside the TF2 family (STAC_NO_TF2_API) don't include it at all.
+#if !defined STAC_NO_TF2_API
 #if !defined STAC_GAME_TF2
     #undef REQUIRE_EXTENSIONS
 #endif
 #include <tf2_stocks>
 #if !defined STAC_GAME_TF2
     #define REQUIRE_EXTENSIONS
+#endif
 #endif
 #if !defined STAC_NO_MEMHACKS
 #include <dhooks>
@@ -206,7 +209,8 @@ public void OnPluginStart()
     }
 
     // hook bullets fired for aimsnap and triggerbot
-    AddTempEntHook("Fire Bullets", Hook_TEFireBullets);
+    // ("Fire Bullets" in TF2 and its derivatives, "Shotgun Shot" in HL2DM, CS:S and FF)
+    AddTempEntHook(STAC_FIRE_BULLETS_TE, Hook_TEFireBullets);
 
     // create global timer running every couple jiffys for getting all clients' network info
     // This immediately populates the arrays instead of waiting a timer tick
@@ -371,6 +375,16 @@ void EngineSanityChecks()
     if (GetEngineVersion() != Engine_SDK2013)
     {
         SetFailState("[StAC] This build of StAC expects the Source SDK 2013 engine! Aborting!");
+    }
+#elseif defined STAC_ENGINE_HL2DM
+    if (GetEngineVersion() != Engine_HL2DM)
+    {
+        SetFailState("[StAC] This build of StAC expects the Half-Life 2: Deathmatch engine! Aborting!");
+    }
+#elseif defined STAC_ENGINE_CSS
+    if (GetEngineVersion() != Engine_CSS)
+    {
+        SetFailState("[StAC] This build of StAC expects the Counter-Strike: Source engine! Aborting!");
     }
 #else
     if (GetEngineVersion() != Engine_TF2)

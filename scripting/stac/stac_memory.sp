@@ -30,7 +30,7 @@ void DoStACGamedata()
     // ENTPROP OFFSETS
 
     /* ent flags */
-    Offset_m_fFlags = FindSendPropInfo("CTFPlayer", "m_fFlags");
+    Offset_m_fFlags = FindSendPropInfo(STAC_PLAYER_CLASS, "m_fFlags");
 
     if ( Offset_m_fFlags == -1 )
     {
@@ -38,7 +38,7 @@ void DoStACGamedata()
         SetFailState( "Failed to get CTFPlayer::m_fFlags offset." );
 #else
         // bhop check falls back to GetEntityFlags
-        StacLog("No CTFPlayer::m_fFlags sendprop in this game, using GetEntityFlags instead.");
+        StacLog("No %s::m_fFlags sendprop in this game, using GetEntityFlags instead.", STAC_PLAYER_CLASS);
 #endif
     }
 }

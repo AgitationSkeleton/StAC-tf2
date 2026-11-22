@@ -269,7 +269,11 @@ public void OnClientPutInServer(int cl)
 
     int userid = GetClientUserId(cl);
 
+#if defined STAC_VERIFY_SDKHOOK_OFFSETS
+    if (IsValidClientOrBot(cl) && SDKHookOffsetVerified(SDKHook_OnTakeDamage))
+#else
     if (IsValidClientOrBot(cl))
+#endif
     {
         SDKHook(cl, SDKHook_OnTakeDamage, hOnTakeDamage);
     }
@@ -426,8 +430,10 @@ public Action hOnTakeDamage(int victim, int& attacker, int& inflictor, float& da
         victim != attacker
         // not fire
         && !(damagetype & DMG_IGNITE)
+#if !defined STAC_NO_TF2_API
         && !(damagetype & TF_CUSTOM_BURNING_FLARE)
         && !(damagetype & TF_CUSTOM_BURNING)
+#endif
     )
     {
         didHurtThisFrame[attacker] = true;
@@ -449,6 +455,8 @@ public Action Hook_TEFireBullets(const char[] te_name, const int[] players, int 
     return Plugin_Continue;
 }
 
+// TF2 forwards (TF2 Tools, or the per-game tools plugin): teleporters, taunts and Halloween conds
+#if !defined STAC_NO_TF2_API
 public Action TF2_OnPlayerTeleport(int cl, int teleporter, bool& result)
 {
     if (IsValidClient(cl))
@@ -492,6 +500,7 @@ public void TF2_OnConditionRemoved(int cl, TFCond condition)
         }
     }
 }
+#endif // !STAC_NO_TF2_API
 
 public Action ePlayerAchievement(Handle event, char[] name, bool dontBroadcast)
 {
@@ -511,7 +520,12 @@ Action OnAllClientCommands(int cl, const char[] command, int argc)
 {
     if
     (
+#if defined STAC_NO_TF2_API
+        // the server console is 0; HL2DM also passes -1 for commands run with no client
+        cl <= 0
+#else
         cl == 0
+#endif
         ||
         // Ignore connected fake clients
         (IsClientConnected(cl) && IsFakeClient(cl))

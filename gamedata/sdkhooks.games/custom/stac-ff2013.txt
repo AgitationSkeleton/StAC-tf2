@@ -1,0 +1,22 @@
+"Games"
+{
+	/*
+	   Fortress Forever 2013 (Source SDK 2013), shipped with the StAC Fortress Forever build.
+	   SourceMod's game.ff.txt has FF 2.4's offsets. On FF 2013 its "OnTakeDamage" (65) is
+	   CBasePlayer::TraceAttack, so any OnTakeDamage hook crashes the server.
+	   Read from the CFFPlayer vtable in FF's server.so (Windows index = Linux index - 1) and
+	   checked on a Windows test server with bots: OnTakeDamage hooks fire with sane values.
+	   This only overrides OnTakeDamage; every other offset stays SourceMod's.
+	*/
+	"FortressForever"
+	{
+		"Offsets"
+		{
+			"OnTakeDamage"
+			{
+				"windows"	"67"
+				"linux"		"68"
+			}
+		}
+	}
+}

@@ -576,6 +576,7 @@ bool IsActuallyNullString(char[] somestring)
     return true;
 }
 
+#if !defined STAC_NO_TF2_API
 bool IsHalloweenCond(TFCond condition)
 {
 #if defined STAC_NO_HALLOWEEN_CONDS
@@ -603,12 +604,25 @@ bool IsHalloweenCond(TFCond condition)
     return false;
 #endif
 }
+#endif // !STAC_NO_TF2_API
 
 /********** MISC CLIENT CHECKS **********/
 
 // is client on a team and not dead
 bool IsClientPlaying(int client)
 {
+#if defined STAC_NO_TF2_API
+    // team 0 (unassigned) and 1 (spectator) are the same in every Source game
+    int team = GetClientTeam(client);
+    if
+    (
+        IsPlayerAlive(client)
+        &&
+        (
+            team != STAC_TEAM_UNASSIGNED && team != STAC_TEAM_SPECTATOR
+        )
+    )
+#else
     TFTeam team = TF2_GetClientTeam(client);
     if
     (
@@ -618,6 +632,7 @@ bool IsClientPlaying(int client)
             team != TFTeam_Unassigned && team != TFTeam_Spectator
         )
     )
+#endif
     {
         return true;
     }
@@ -752,6 +767,62 @@ void HookEventSafe(const char[] name, EventHook callback, EventHookMode mode = E
         StacLog("Game has no \"%s\" event, not hooking it.", name);
     }
 }
+
+// Some games' SourceMod gamedata was written for an older build of the game (Fortress Forever: FF 2.4
+// offsets, wrong for FF 2013, where "OnTakeDamage" lands on TraceAttack and crashes the server).
+// In those builds (STAC_VERIFY_SDKHOOK_OFFSETS) a hook is only placed when the gamedata offset is the
+// one verified for the current game build; otherwise StAC logs it once and goes without that hook.
+#if defined STAC_VERIFY_SDKHOOK_OFFSETS
+bool SDKHookOffsetVerified(SDKHookType type)
+{
+    // 0 = not checked yet, 1 = verified, 2 = wrong or missing
+    static int state[2];
+    int idx;
+    char key[32];
+    int expected;
+    bool linux = StrEqual(os, "linux");
+    if (type == SDKHook_OnTakeDamage)
+    {
+        idx = 0;
+        strcopy(key, sizeof(key), "OnTakeDamage");
+        expected = linux ? STAC_SDKHOOK_ONTAKEDAMAGE_LINUX : STAC_SDKHOOK_ONTAKEDAMAGE_WINDOWS;
+    }
+    else if (type == SDKHook_EndTouchPost)
+    {
+        idx = 1;
+        strcopy(key, sizeof(key), "EndTouch");
+        expected = linux ? STAC_SDKHOOK_ENDTOUCH_LINUX : STAC_SDKHOOK_ENDTOUCH_WINDOWS;
+    }
+    else
+    {
+        return false;
+    }
+
+    if (state[idx] == 0)
+    {
+        int offset = -1;
+        char path[PLATFORM_MAX_PATH];
+        BuildPath(Path_SM, path, sizeof(path), "gamedata/sdkhooks.games");
+        // SourceMod 1.11 throws instead of returning null for missing gamedata
+        if (DirExists(path))
+        {
+            GameData gd = new GameData("sdkhooks.games");
+            if (gd)
+            {
+                offset = gd.GetOffset(key);
+                delete gd;
+            }
+        }
+        state[idx] = (offset == expected) ? 1 : 2;
+        if (state[idx] == 2)
+        {
+            StacLog("SourceMod's sdkhooks gamedata has %s = %i, but this %s build needs %i (the gamedata in the StAC zip fixes OnTakeDamage). Not hooking %s.",
+                key, offset, STAC_GAME_DESC, expected, key);
+        }
+    }
+    return state[idx] == 1;
+}
+#endif
 
 void WarnIfExtMissing(const char[] file, const char[] feature)
 {

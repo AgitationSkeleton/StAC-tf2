@@ -2,6 +2,10 @@
 // formerly custom defined, now at 101 as of unrestricted_maxplayers update
 #define TFMAXPLAYERS 101
 
+// team indices shared by every Source game (used where TF2's TFTeam enum isn't available)
+#define STAC_TEAM_UNASSIGNED    0
+#define STAC_TEAM_SPECTATOR     1
+
 /********** GLOBAL VARS **********/
 // Regex steamidRegex;
 
