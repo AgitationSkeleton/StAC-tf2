@@ -146,6 +146,9 @@ void playerperfCheck(int cl)
 // if there are upgrades to the call/response bullshit in chook i can and will make this iterate thru every single kv
 public Action OnClientCommandKeyValues(int cl, KeyValues kv)
 {
+#if defined STAC_NO_ACHIEVEMENT_CHECK
+    return Plugin_Continue;
+#endif
     if (!IsValidClient(cl))
     {
         return Plugin_Continue;
@@ -389,6 +392,12 @@ void checkInterp(int userid)
 
 void cheevCheck(int userid, int achieve_id)
 {
+#if defined STAC_NO_ACHIEVEMENT_CHECK
+    // Not TF2: achievement ids are the game's own (TF2C starts at 0), so nothing here can be judged
+    // against TF2's list. Every caller (achievement_earned event AND the client's AchievementEarned
+    // KeyValues command) ends here, so this is the one place the check must be off.
+    return;
+#endif
     // ent index of achievement earner
     int cl              = GetClientOfUserId(userid);
 
