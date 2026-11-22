@@ -57,14 +57,14 @@ stac_max_aimsnap_detections "20"
 stac_max_psilent_detections "10"
 
 // [StAC] maximum consecutive bhop detections on a client before they get "antibhopped", aka they get their gravity set to 8x.
-// client will get banned on this value + 2 (meaning they did 2 more perfect bhops on 8x gravity), so for default cvar settings, client will get banned on 12 tick perfect bhops.
+// client will get banned on this value + 2 (meaning they did 2 more perfect bhops on 8x gravity), so with this set to 10, a client gets banned on 12 tick perfect bhops.
 // ctrl + f for "antibhop" in stac.sp for more detailed info.
 // -1 to disable even checking bhops (saves cpu), 0 to print to admins/stv but never ban
-// (recommended 10 or higher)
+// (default -1: off. 10 or higher if you turn it on)
 // -
-// Default: "10"
+// Default: "-1"
 // Minimum: "-1.000000"
-stac_max_bhop_detections "10"
+stac_max_bhop_detections "-1"
 
 // [StAC] maximum fake angle / wrong / OOB angle detections before banning a client.
 // -1 to disable even checking angles (saves cpu), 0 to print to admins/stv but never ban

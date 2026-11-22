@@ -72,12 +72,12 @@ void initUsercmdCvars()
     AutoExecConfig_CreateConVar
     (
         "stac_max_bhop_detections",
-        "10",
+        "-1",
         "[StAC] maximum consecutive bhop detections on a client before they get \"antibhopped\", aka they get their gravity set to 8x.\n\
-        client will get banned on this value + 2 (meaning they did 2 more perfect bhops on 8x gravity), so for default cvar settings, client will get banned on 12 tick perfect bhops.\n\
+        client will get banned on this value + 2 (meaning they did 2 more perfect bhops on 8x gravity), so with this set to 10, a client gets banned on 12 tick perfect bhops.\n\
         ctrl + f for \"antibhop\" in stac.sp for more detailed info.\n\
         -1 to disable even checking bhops (saves cpu), 0 to print to admins/stv but never ban\n\
-        (recommended 10 or higher)",
+        (default -1: off. 10 or higher if you turn it on)",
         FCVAR_NONE,
         true,
         -1.0,
